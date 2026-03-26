@@ -2,22 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { X, Download } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
-    // Écouter l'événement d'installation PWA
     window.addEventListener("beforeinstallprompt", (e) => {
-      // Empêcher l'affichage natif du navigateur
       e.preventDefault();
-      // Sauvegarder l'événement pour plus tard
       setDeferredPrompt(e);
 
-      // Logique pour afficher le prompt (ex: vérifier le nombre de visites)
       const visits = parseInt(localStorage.getItem("fi_pwa_visits") || "0");
-      if (visits >= 1) { // Afficher après la 1ère visite (donc à la 2ème)
+      if (visits >= 1) {
         const hasDismissed = sessionStorage.getItem("fi_pwa_dismissed") === "true";
         if (!hasDismissed) {
           setShowPrompt(true);
@@ -28,24 +26,15 @@ export function PWAInstallPrompt() {
     });
 
     window.addEventListener("appinstalled", () => {
-      // L'app a été installée
       setShowPrompt(false);
       setDeferredPrompt(null);
-      console.log("PWA installée avec succès");
     });
   }, []);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
-    
-    // Afficher le prompt d'installation
     deferredPrompt.prompt();
-    
-    // Attendre que l'utilisateur réponde
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`L'utilisateur a ${outcome} l'installation`);
-    
-    // Réinitialiser
+    await deferredPrompt.userChoice;
     setDeferredPrompt(null);
     setShowPrompt(false);
   };
@@ -58,40 +47,38 @@ export function PWAInstallPrompt() {
   if (!showPrompt) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:bottom-8 md:right-8 md:left-auto md:w-96 z-[100] animate-fade-in-up">
-      <div className="glass-card p-5 border border-[var(--primary)] shadow-2xl relative overflow-hidden">
-        {/* Glow effect */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)] opacity-10 blur-3xl rounded-full"></div>
-        
-        <button 
+    <div className="fixed bottom-4 left-4 right-4 md:bottom-8 md:right-8 md:left-auto md:w-[400px] z-50 animate-in fade-in slide-in-from-bottom-5">
+      <Card className="p-4 shadow-lg border-primary/20">
+        <button
           onClick={handleDismiss}
-          className="absolute top-3 right-3 text-[var(--text-muted)] hover:text-white transition-colors p-1"
+          className="absolute top-2 right-2 p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors"
           aria-label="Fermer"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
-        <div className="flex gap-4">
-          <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-2xl flex items-center justify-center p-2 mt-1">
-             <span className="text-[#0a0a12] font-bold text-xl">FI</span>
+        <div className="flex gap-4 pt-2">
+          <div className="w-12 h-12 flex-shrink-0 bg-primary rounded-xl flex items-center justify-center">
+             <span className="text-primary-foreground font-bold text-xl">FI</span>
           </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-white text-lg mb-1">Installer l&apos;Application</h3>
-            <p className="text-sm text-[var(--text-secondary)] mb-4 leading-relaxed tracking-wide">
-              Installez Familles d&apos;Impact sur votre écran d&apos;accueil pour un accès hors ligne, des rappels de réunion et une expérience plus rapide.
+          <div className="flex-1 pr-6">
+            <h3 className="font-semibold text-foreground mb-1">
+              Installer l&apos;Application
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Ajoutez Familles d&apos;Impact sur votre écran d&apos;accueil pour un accès hors ligne et plus rapide.
             </p>
-            <div className="flex gap-2">
-              <button 
-                onClick={handleInstallClick}
-                className="btn-primary !py-2 !px-4 text-sm flex-1 flex items-center justify-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Installer
-              </button>
-            </div>
+            <Button
+              onClick={handleInstallClick}
+              className="w-full sm:w-auto"
+              size="sm"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Installer
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

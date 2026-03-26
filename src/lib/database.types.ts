@@ -11,7 +11,7 @@ export interface Utilisateur {
   telephone: string;
   role: RoleUtilisateur;
   adresse_texte: string | null;
-  coords_domicile: { lat: number; lng: number } | null;
+  coords_domicile: string | null; // PostGIS Point (ex: "POINT(lng lat)")
   cree_le: string;
 }
 
@@ -20,7 +20,7 @@ export interface FamilleImpact {
   nom_famille: string;
   chef_id: string;
   adresse_reunion: string;
-  emplacement_reunion: { lat: number; lng: number };
+  emplacement_reunion: string; // PostGIS Point
   jour_reunion: JourReunion;
   heure_reunion: string;
   chef?: Utilisateur;
@@ -62,17 +62,20 @@ export interface FIProche {
   distance_km: number;
   chef_nom: string;
   chef_telephone: string;
+  lat_reunion: number;
+  lng_reunion: number;
 }
 
-// Type de base Supabase Database (simplifié - sera généré par CLI)
+// Type de base Supabase Database
 export interface Database {
   public: {
     Tables: {
       utilisateurs: {
         Row: Utilisateur;
-        Insert: Omit<Utilisateur, "id" | "cree_le"> & {
+        Insert: Omit<Utilisateur, "id" | "cree_le" | "role"> & {
           id?: string;
           cree_le?: string;
+          role?: RoleUtilisateur;
         };
         Update: Partial<Omit<Utilisateur, "id">>;
       };

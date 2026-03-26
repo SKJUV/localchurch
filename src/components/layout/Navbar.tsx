@@ -2,18 +2,34 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Menu, X } from "lucide-react";
+import { createClient } from "@/lib/supabase";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const supabase = createClient();
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      setIsScrolled(window.scrollY > 10);
     };
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      subscription.unsubscribe();
+    };
+  }, [supabase.auth]);
 
   const navLinks = [
     { href: "/", label: "Accueil" },
@@ -23,104 +39,115 @@ export function Navbar() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+      className={`fixed top-0 w-full z-50 transition-all duration-300 ${
         isScrolled
-          ? "py-3 bg-[rgba(10,10,18,0.85)] backdrop-blur-xl border-b border-[var(--glass-border)]"
-          : "py-5 bg-transparent"
+          ? "bg-background/80 backdrop-blur-md border-b shadow-sm"
+          : "bg-transparent"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center shadow-lg group-hover:shadow-[var(--shadow-glow)] transition-shadow duration-300">
-            <span className="text-[#0a0a12] font-bold text-lg">FI</span>
+        <Link href="/" className="flex items-center gap-2 group">
+          <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">FI</span>
           </div>
-          <div className="hidden sm:block">
-            <span className="text-lg font-bold gradient-text">
-              Familles d&apos;Impact
-            </span>
-          </div>
+          <span className="text-lg font-bold tracking-tight">
+            Familles d&apos;Impact
+          </span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-6">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors duration-300 rounded-lg hover:bg-[rgba(212,168,67,0.08)]"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
             >
               {link.label}
             </Link>
           ))}
+          {user ? (
+            <div className="flex items-center gap-4 ml-2">
+              <Button asChild variant="outline" size="sm">
+                <Link href="/profil">Mon Profil</Link>
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => supabase.auth.signOut()}
+              >
+                Déconnexion
+              </Button>
+            </div>
+          ) : (
+            <Button asChild size="sm" className="ml-4">
+              <Link href="/connexion">Se Connecter</Link>
+            </Button>
+          )}
         </nav>
 
-        {/* CTA + Mobile Toggle */}
-        <div className="flex items-center gap-3">
-          <Link
-            href="/connexion"
-            className="hidden sm:inline-flex btn-primary text-sm !py-2.5 !px-5"
-          >
-            Se Connecter
-          </Link>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden flex flex-col items-center justify-center w-10 h-10 rounded-lg hover:bg-[rgba(212,168,67,0.1)] transition-colors"
-            aria-label="Menu"
-          >
-            <span
-              className={`block w-5 h-0.5 bg-[var(--primary)] transition-all duration-300 ${
-                isMobileMenuOpen
-                  ? "rotate-45 translate-y-1.5"
-                  : ""
-              }`}
-            />
-            <span
-              className={`block w-5 h-0.5 bg-[var(--primary)] mt-1 transition-all duration-300 ${
-                isMobileMenuOpen ? "opacity-0" : ""
-              }`}
-            />
-            <span
-              className={`block w-5 h-0.5 bg-[var(--primary)] mt-1 transition-all duration-300 ${
-                isMobileMenuOpen
-                  ? "-rotate-45 -translate-y-1.5"
-                  : ""
-              }`}
-            />
-          </button>
-        </div>
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="md:hidden p-2 text-foreground"
+          aria-label="Menu"
+        >
+          {isMobileMenuOpen ? (
+            <X className="w-6 h-6" />
+          ) : (
+            <Menu className="w-6 h-6" />
+          )}
+        </button>
       </div>
 
       {/* Mobile Menu */}
-      <div
-        className={`md:hidden absolute top-full left-0 right-0 bg-[rgba(10,10,18,0.95)] backdrop-blur-xl border-b border-[var(--glass-border)] transition-all duration-300 ${
-          isMobileMenuOpen
-            ? "opacity-100 translate-y-0 pointer-events-auto"
-            : "opacity-0 -translate-y-4 pointer-events-none"
-        }`}
-      >
-        <nav className="px-4 py-4 flex flex-col gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="px-4 py-3 text-base font-medium text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors duration-300 rounded-lg hover:bg-[rgba(212,168,67,0.08)]"
-            >
-              {link.label}
-            </Link>
-          ))}
-          <Link
-            href="/connexion"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="btn-primary mt-3 text-center"
-          >
-            Se Connecter
-          </Link>
-        </nav>
-      </div>
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-background border-b absolute top-16 left-0 right-0 shadow-lg p-4 flex flex-col gap-4">
+          <nav className="flex flex-col gap-2">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-base font-medium p-2 text-foreground hover:bg-muted rounded-md"
+              >
+                {link.label}
+              </Link>
+            ))}
+            
+            {user ? (
+              <>
+                <Link
+                  href="/profil"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-base font-medium p-2 text-primary hover:bg-muted rounded-md"
+                >
+                  Mon Profil
+                </Link>
+                <Button
+                  variant="outline"
+                  className="mt-2 w-full"
+                  onClick={() => {
+                    supabase.auth.signOut();
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+                  Déconnexion
+                </Button>
+              </>
+            ) : (
+              <Button
+                asChild
+                className="mt-2 w-full"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Link href="/connexion">Se Connecter</Link>
+              </Button>
+            )}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
